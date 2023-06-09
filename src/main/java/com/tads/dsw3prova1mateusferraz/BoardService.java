@@ -236,7 +236,7 @@ public class BoardService {
                             this.gameStatus = GameStatus.WIN;
                         }
                         board[row][newColumnIndex] = 0;
-                        emptyTilesCoordinates.add(new int[]{row, column});
+                        emptyTilesCoordinates.add(new int[]{row, newColumnIndex});
                         numberOfFreeTilesOnLeft++;
                         sumAlreadyPerformedOnLeft = true;
                     }
