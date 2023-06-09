@@ -23,7 +23,7 @@ public class BoardService {
     private int score = 0;
 
     private boolean isGameRunning;
-    private boolean won;
+    private GameStatus gameStatus;
 
     public BoardService() {
         initializeCleanGame();
@@ -33,7 +33,7 @@ public class BoardService {
         this.board = new int[BOARD_SIZE][BOARD_SIZE];
         this.emptyTilesCoordinates = new ArrayList<>();
         this.score = 0;
-        this.won = false;
+        this.gameStatus = GameStatus.RUNNING;
         this.isGameRunning = true;
         initializeEmptyTiles();
     }
@@ -49,7 +49,7 @@ public class BoardService {
     private String formatJsonResponseWithGameDetails(int[][] matrix) {
         JSONObject gameDetailsResponse = new JSONObject();
         gameDetailsResponse.put("score", this.score);
-        gameDetailsResponse.put("winner", this.won);
+        gameDetailsResponse.put("status", this.gameStatus);
         JSONArray matrixJson = new JSONArray();
         for (int i = 0; i < BOARD_SIZE; i++) {
             JSONObject rowJson = new JSONObject();
@@ -87,25 +87,36 @@ public class BoardService {
         }
     }
 
+    private boolean checkIfGameIsLost() {
+        final int[][] boardCopy = Arrays.copyOf(this.board, this.board.length);
+        int numberOfTilesAffected = (
+                moveBoardUp(boardCopy) +
+                moveBoardDown(boardCopy) +
+                moveBoardLeft(boardCopy) +
+                moveBoardRight(boardCopy)
+        );
+        return numberOfTilesAffected == 0;
+    }
+
     public String execute(BoardMove boardMove) {
         // Check if there's free space on board
-        if (emptyTilesCoordinates.size() == 0) {
-            throw new RuntimeException("You lose!");
+        if (emptyTilesCoordinates.size() == 0 && checkIfGameIsLost()) {
+            this.gameStatus = GameStatus.LOST;
         }
         int numberOfTilesAffected = switch (boardMove) {
-            case UP -> moveBoardUp();
-            case RIGHT -> moveBoardRight();
-            case DOWN -> moveBoardDown();
-            case LEFT -> moveBoardLeft();
+            case UP -> moveBoardUp(this.board);
+            case RIGHT -> moveBoardRight(this.board);
+            case DOWN -> moveBoardDown(this.board);
+            case LEFT -> moveBoardLeft(this.board);
         };
         // Check if any move was performed, otherwise do not insert random number to board
-        if (numberOfTilesAffected > 0 && !won) {
+        if (numberOfTilesAffected > 0 && this.gameStatus == GameStatus.RUNNING) {
             insertRandomNumberToBoard();
         }
         return formatJsonResponseWithGameDetails(board);
     }
 
-    private int moveBoardUp() {
+    private int moveBoardUp(int[][] board) {
         int numberOfTilesAffected = 0;
         for (int column = 0; column < BOARD_SIZE; column++) {
             int numberOfFreeTilesOnTop = 0;
@@ -133,7 +144,9 @@ public class BoardService {
                         board[newRowPosition - 1][column] = sum;
                         numberOfTilesAffected++;
                         this.score += sum;
-                        this.won = sum == MAXIMUM_NUMBER;
+                        if (sum == MAXIMUM_NUMBER) {
+                            this.gameStatus = GameStatus.WIN;
+                        }
                         board[newRowPosition][column] = 0;
                         emptyTilesCoordinates.add(new int[]{newRowPosition, column});
                         numberOfFreeTilesOnTop++;
@@ -147,7 +160,7 @@ public class BoardService {
         return numberOfTilesAffected;
     }
 
-    private int moveBoardRight() {
+    private int moveBoardRight(int[][] board) {
         int numberOfTilesAffected = 0;
         for (int row = 0; row < BOARD_SIZE; row++) {
             int numberOfFreeTilesOnRight = 0;
@@ -175,7 +188,9 @@ public class BoardService {
                         board[row][newColumnIndex + 1] = sum;
                         numberOfTilesAffected++;
                         this.score += sum;
-                        this.won = sum == MAXIMUM_NUMBER;
+                        if (sum == MAXIMUM_NUMBER) {
+                            this.gameStatus = GameStatus.WIN;
+                        }
                         board[row][newColumnIndex] = 0;
                         emptyTilesCoordinates.add(new int[]{row, newColumnIndex});
                         numberOfFreeTilesOnRight++;
@@ -189,7 +204,7 @@ public class BoardService {
         return numberOfTilesAffected;
     }
 
-    private int moveBoardLeft() {
+    private int moveBoardLeft(int[][] board) {
         int numberOfTilesAffected = 0;
         for (int row = 0; row < BOARD_SIZE; row++) {
             int numberOfFreeTilesOnLeft = 0;
@@ -217,7 +232,9 @@ public class BoardService {
                         board[row][newColumnIndex - 1] = sum;
                         numberOfTilesAffected++;
                         this.score += sum;
-                        this.won = sum == MAXIMUM_NUMBER;
+                        if (sum == MAXIMUM_NUMBER) {
+                            this.gameStatus = GameStatus.WIN;
+                        }
                         board[row][newColumnIndex] = 0;
                         emptyTilesCoordinates.add(new int[]{row, column});
                         numberOfFreeTilesOnLeft++;
@@ -231,7 +248,7 @@ public class BoardService {
         return numberOfTilesAffected;
     }
 
-    private int moveBoardDown() {
+    private int moveBoardDown(int[][] board) {
         int numberOfTilesAffected = 0;
         for (int column = 0; column < BOARD_SIZE; column++) {
             int numberOfFreeTilesOnBottom = 0;
@@ -259,7 +276,9 @@ public class BoardService {
                         board[newRowIndex + 1][column] = sum;
                         numberOfTilesAffected++;
                         this.score += sum;
-                        this.won = sum == MAXIMUM_NUMBER;
+                        if (sum == MAXIMUM_NUMBER) {
+                            this.gameStatus = GameStatus.WIN;
+                        }
                         board[newRowIndex][column] = 0;
                         emptyTilesCoordinates.add(new int[]{newRowIndex, column});
                         numberOfFreeTilesOnBottom++;
